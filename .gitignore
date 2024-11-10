@@ -1,0 +1,14 @@
+# Mac
+.DS_Store
+
+# Dependency directories
+node_modules/
+
+# dotenv environment variable files
+.env
+.env.production
+
+# VPS private key
+id_ed25519
+
+dist
