@@ -1,34 +1,46 @@
 import * as cron from 'node-cron'
-import { transferFiles, transferFile } from './services/fileTransferService'
-import { fetchFilePaths, markFileAsDownloaded } from './services/apiService'
+import {
+  transferDatabaseBackupFiles,
+  transferDocuments
+} from './services/fileTransferService'
+import { fetchFilePaths } from './services/apiService'
 import logger from './utils/logger'
-import { CRON_TAB } from './config/config'
+import { CRON_TAB_BACKUPS, CRON_TAB_DOCUMENTS } from './config/config'
 
-async function dailyFileSync() {
+async function databaseBackupSync() {
   try {
     logger.info('Starting daily file sync')
 
-    // Step 1: Transfer main set of files
-    await transferFiles()
+    await transferDatabaseBackupFiles()
 
-    // Step 2: Fetch additional file paths
-    const fileRecords = await fetchFilePaths()
-
-    // Step 3: Download each file and update its status
-    for (const file of fileRecords) {
-      logger.info(`Downloading additional file: ${file}`)
-
-      await transferFile(file)
-
-      // After downloading, mark the file as downloaded
-      await markFileAsDownloaded(file)
-    }
-
-    logger.info('Daily file sync completed')
+    logger.info('Daily database backup sync completed')
   } catch (error) {
-    logger.error('An error occurred during the daily file sync process:', error)
+    logger.error(
+      'An error occurred during the daily database backup sync process:',
+      error
+    )
   }
 }
 
-// Schedule the task to run as per CRON_TAB env var
-cron.schedule(CRON_TAB, dailyFileSync)
+async function documentsSync() {
+  try {
+    logger.info('Starting documents files sync')
+
+    const files: string[] = await fetchFilePaths()
+
+    logger.info(`${files.length} records received`)
+
+    await transferDocuments(files)
+
+    logger.info('Documents files sync completed')
+  } catch (error) {
+    logger.error(
+      'An error occurred during the documents files sync process:',
+      error
+    )
+  }
+}
+
+cron.schedule(CRON_TAB_BACKUPS, databaseBackupSync)
+
+cron.schedule(CRON_TAB_DOCUMENTS, documentsSync)

@@ -6,7 +6,8 @@ const logger = createLogger({
     format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     format.printf(
       ({ timestamp, level, message }) => `${timestamp} [${level}]: ${message}`
-    )
+    ),
+    format.colorize({ all: true })
   ),
   transports: [new transports.Console()]
 })

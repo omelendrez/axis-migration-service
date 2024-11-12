@@ -6,7 +6,7 @@ import { TableRow } from '../types'
 // Fetch file paths from the external API
 export async function fetchFilePaths(): Promise<string[]> {
   try {
-    const response = await axios.get(EXTERNAL_API_ENDPOINT)
+    const response = await axios.get(`${EXTERNAL_API_ENDPOINT}?status=0`)
 
     const data = response.data.map((row: TableRow) => row.file)
 
@@ -24,7 +24,7 @@ export async function fetchFilePaths(): Promise<string[]> {
 export async function markFileAsDownloaded(file: string): Promise<void> {
   try {
     await axios.put(EXTERNAL_API_ENDPOINT, { file, status: 1 })
-    logger.info(`File ${file} marked as downloaded`)
+    // logger.info(`File ${file} marked as downloaded`)
   } catch (error) {
     logger.error(`Failed to update file status for ${file}:`, error)
     throw error
