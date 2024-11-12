@@ -1,49 +1,34 @@
-import { NodeSSH } from 'node-ssh'
-import * as dotenv from 'dotenv'
-import logger from './utils/logger'
 import * as cron from 'node-cron'
+import { transferFiles, transferFile } from './services/fileTransferService'
+import { fetchFilePaths, markFileAsDownloaded } from './services/apiService'
+import logger from './utils/logger'
+import { CRON_TAB } from './config/config'
 
-dotenv.config()
-
-interface SSHConfig {
-  host: string
-  port: number
-  username: string
-  password?: string
-}
-
-const ssh = new NodeSSH()
-
-const config: SSHConfig = {
-  host: process.env.VPS_HOST || '',
-  username: process.env.VPS_USERNAME || '',
-  port: Number(process.env.VPS_PORT) || 22,
-  password: process.env.VPS_PASSWORD
-}
-
-const local = process.env.LOCAL_DOCUMENTS_FOLDER_PATH
-const remote = process.env.VPS_BACKUPS_FOLDER_PATH
-
-async function transferFiles() {
+async function dailyFileSync() {
   try {
-    await ssh.connect(config)
-    logger.info('SSH connection established')
+    logger.info('Starting daily file sync')
 
-    // @ts-ignore
-    const result = await ssh.getDirectory(local, remote)
-    logger.info(result)
-    logger.info("The file's contents were successfully downloaded")
+    // Step 1: Transfer main set of files
+    await transferFiles()
+
+    // Step 2: Fetch additional file paths
+    const fileRecords = await fetchFilePaths()
+
+    // Step 3: Download each file and update its status
+    for (const file of fileRecords) {
+      logger.info(`Downloading additional file: ${file}`)
+
+      await transferFile(file)
+
+      // After downloading, mark the file as downloaded
+      await markFileAsDownloaded(file)
+    }
+
+    logger.info('Daily file sync completed')
   } catch (error) {
-    logger.error('An error occurred during file transfer')
-    logger.error(error instanceof Error ? error.message : error)
-  } finally {
-    ssh.dispose()
-    logger.info('SSH connection closed')
+    logger.error('An error occurred during the daily file sync process:', error)
   }
 }
 
-// Schedule the function to run once every day at midnight
-cron.schedule('0 0 * * *', () => {
-  logger.info('Starting daily file transfer')
-  transferFiles()
-})
+// Schedule the task to run as per CRON_TAB env var
+cron.schedule(CRON_TAB, dailyFileSync)
