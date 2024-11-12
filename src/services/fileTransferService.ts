@@ -41,6 +41,8 @@ export async function transferDocuments(files: string[]): Promise<void> {
       const localFile = `${LOCAL_DOCUMENTS_ROOT_FOLDER}/${file}`
       const remoteFile = `${REMOTE_DOCUMENTS_ROOT_FOLDER}/${file}`
 
+      const fileName = file.split('/').pop()
+
       // logger.info(`Transferring file: ${remoteFile} to ${localFile}`)
 
       if (!fs.existsSync(localFile)) {
@@ -49,13 +51,12 @@ export async function transferDocuments(files: string[]): Promise<void> {
 
         downloaded++
 
-        // After downloading, mark the file as downloaded
-        await markFileAsDownloaded(file)
-
-        logger.info(`File ${file.split('/').pop()} successfully downloaded`)
+        logger.info(`File ${fileName} successfully downloaded`)
       } else {
-        logger.warn('Warn! File already exists')
+        logger.warn(`File ${fileName} already exists`)
       }
+      // After downloading (or already existing), mark the file as downloaded
+      await markFileAsDownloaded(file)
     }
   } catch (error) {
     logger.error('File transfer error:', error)
